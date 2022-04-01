@@ -30,6 +30,18 @@
 // git repo:	https://github.com/lammertb/libfins
 // compile:	gcc -o fins_test fins_test.c -L /home/giw/libfins/lib/ -l fins
 
+
+enum STATE {
+	INIT,
+	READ_ADDR,
+	WRITE_ADDR,
+	READING,
+	WRITING,
+	COMPLETE,
+	ERROR
+};
+
+
 int hex_char_to_int( char c ) {
 	if (c>=48 && c<=57) {
 		return ( (int)c - 48 );
@@ -56,6 +68,54 @@ int hex_str_to_int( char str[], int start, int length ) {
 
 
 int main(int argc, char* argv[]) {
+
+	// need at least an IP address and read address
+	if (argc < 4) {
+		printf( "Arguments: <LOCAL_FINS> <REMOTE_IP> <REMOTE_FINS> [ 'W' <W_ADDR_START> <DATA_0>...<DATA_n> ] [ 'R' <R_ADDR_START> <R_QTY> ]\n" );
+		return 1;
+	}
+
+	// FSM
+	STATE nextState 	= INIT;
+	STATE currentState 	= INIT;
+	
+	// write
+	uint16_t writeBuf[1024];
+	int writePlace 		= 0;
+	
+	// read
+	uint16_t readBuf[1024];
+	int readPlace 		= 0;
+	
+	
+	// local FINS
+	// typical: 1,[last_IP_byte],0
+	int localFinsNet, localFinsNode, localFinsUnit;
+	sscanf( argv[1], "%d,%d,%d", &localFinsNet, &localFinsNode, &remoteFinsNode );
+
+	// remote IP
+	// typical: [IP_addr:9600]
+	char remoteAddress[40];
+	int remotePort;
+	sscanf( argv[2], "%s:%d", remoteIP, &remotePort );
+	
+	// remote FINS
+	// typical: 1,[last_IP_byte],0
+	int remoteFinsNet, remoteFinsNode, remoteFinsUnit;
+	sscanf( argv[3], "%d,%d,%d", &remoteFinsNet, &remoteFinsNode, &remoteFinsUnit );
+	
+	// verify:
+	printf( "local FINS network: %d",localFinsNet );
+	printf( "local FINS node: %d", localFinsNode );
+	printf( "local FINS unit: %d", localFinsUnit );
+	
+	printf( "remote IP address: %s", remoteAddress );
+	printf( "remote IP port: %d", remotePort );
+	
+	printf( "remote FINS network: %d", remoteFinsNet );
+	printf( "remote FINS node: %d", remoteFinsNode );
+	printf( "remote FINS unit: %d", remoteFinsUnit );
+	
 
 	/* Initialize */
 
@@ -99,50 +159,59 @@ int main(int argc, char* argv[]) {
 			"Read CPU Data:     Error Message Was: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
 			cuer, err_msg, sys->error_count, sys->sockfd);
 
-	/* Read CPU Status */
 
-	struct fins_cpustatus_tp cpustat;
-	int cpustat_ret = finslib_cpu_unit_status_read(sys, &cpustat);
-	finslib_errmsg(cpustat_ret, err_msg, 64);
-	printf("CPU Unit Stat Read Error Message Was: [%s]\n", err_msg);
-
-	/* Read Memory Area */
-
-	uint16_t arr[2048];
-	int i;
-	for (i = 0; i < 2048; i++) {
-		arr[i] = 0;
-	} // Could use memset...
-
-	int num = 16;
-	//int read_ret = finslib_memory_area_read_uint16(sys, "CIO100.0", arr, num);
-	int read_ret = finslib_memory_area_read_uint16(sys, argv[2], arr, num);
+	for (int arg=0; arg<argc; arg++) {
 	
-	finslib_errmsg(read_ret, err_msg, 64);
-	printf("Memory Area Read Error Message Was: [%s]\n", err_msg);
+	
 
-	for (i = 0; i < num; i++) {
-		printf("arr[%u] = [%u]\n", i, arr[i]);
+		/* Read CPU Status */
+
+		struct fins_cpustatus_tp cpustat;
+		int cpustat_ret = finslib_cpu_unit_status_read(sys, &cpustat);
+		finslib_errmsg(cpustat_ret, err_msg, 64);
+		printf("CPU Unit Stat Read Error Message Was: [%s]\n", err_msg);
+
+		/* Read Memory Area */
+
+		uint16_t arr[2048];
+		int i;
+		for (i = 0; i < 2048; i++) {
+			arr[i] = 0;
+		} // Could use memset...
+
+		int num = 16;
+		//int read_ret = finslib_memory_area_read_uint16(sys, "CIO100.0", arr, num);
+		int read_ret = finslib_memory_area_read_uint16(sys, argv[2], arr, num);
+		
+		finslib_errmsg(read_ret, err_msg, 64);
+		printf("Memory Area Read Error Message Was: [%s]\n", err_msg);
+
+		for (i = 0; i < num; i++) {
+			printf("arr[%u] = [%u]\n", i, arr[i]);
+		}
+
+		/* Write Memory Area */
+
+		for (i = 0; i < 2048; i++) {
+			arr[i] = 0;
+		} // Again, could use memset...
+		for (i = 0; i < argc-3; i++) {
+			arr[i] = (uint16_t)hex_str_to_int( argv[i+3], 0, 4 );
+		}
+
+		num = 16;
+		//int write_ret = finslib_memory_area_write_uint16(sys, "CIO100.0", arr, num);
+		int write_ret = finslib_memory_area_write_uint16(sys, argv[2], arr, num);
+		finslib_errmsg(write_ret, err_msg, 64);
+		printf("Memory Area Write Error Message Was: [%s]\n", err_msg);
+
+		for (i = 0; i < num; i++) {
+			printf("arr[%u] = [%u]\n", i, arr[i]);
+		}
+		
 	}
-
-	/* Write Memory Area */
-
-	for (i = 0; i < 2048; i++) {
-		arr[i] = 0;
-	} // Again, could use memset...
-	for (i = 0; i < argc-3; i++) {
-		arr[i] = (uint16_t)hex_str_to_int( argv[i+3], 0, 4 );
-	}
-
-	num = 16;
-	//int write_ret = finslib_memory_area_write_uint16(sys, "CIO100.0", arr, num);
-	int write_ret = finslib_memory_area_write_uint16(sys, argv[2], arr, num);
-	finslib_errmsg(write_ret, err_msg, 64);
-	printf("Memory Area Write Error Message Was: [%s]\n", err_msg);
-
-	for (i = 0; i < num; i++) {
-		printf("arr[%u] = [%u]\n", i, arr[i]);
-	}
+	
+	
 
 	/* Read Error Log */
 
