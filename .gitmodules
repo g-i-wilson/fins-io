@@ -1,3 +1,6 @@
 [submodule "libfins"]
 	path = libfins
 	url = git@github.com:lammertb/libfins.git
+[submodule "paddle"]
+	path = paddle
+	url = git@github.com:g-i-wilson/paddle.git
