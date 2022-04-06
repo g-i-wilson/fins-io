@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
 		printf( "%04x", readBuf[i] );
 		if (i<readLength-1) { printf( "," ); }
 	}
-	printf( "\n" );
+	//printf( "\n" );
 
 	finslib_errmsg(read_ret, err_msg, 64);
 	fprintf( stderr, "Read: [%s]\n", err_msg);
