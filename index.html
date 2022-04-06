@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 <title>FINS Server</title>
@@ -26,15 +27,39 @@
 
 <br><br>
 
-<div style="width:500px;height:150px;line-height:3em;overflow:scroll;padding:5px;">
+<div style="height:150px;line-height:3em;overflow:scroll;padding:5px;">
 ////readData////
 </div>
 
+<div id="graph-div"></div>
 	
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
+	var layout = {
+	  //autosize: false,
+	  //width: 500,
+	  height: 250,
+	  margin: {
+	    l: 50,
+	    r: 50,
+	    b: 50,
+	    t: 10,
+	    pad: 4
+	  },
+	  color: "rgba(255,255,255,1.0)",
+	  plot_bgcolor: "rgba(0,0,0,0)",
+	  paper_bgcolor: "rgba(0,0,0,0)",
+	};
 
-	
+	var data = {
+	  y: [////readData////],
+	  fill: 'tozeroy',
+	  type: 'scatter',
+	  name: 'PLC Data',
+	  line: {color: 'blue'}
+	};
 
+	Plotly.newPlot('graph-div', [ data ], layout );
 </script>
 	
 </body>
