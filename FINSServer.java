@@ -3,15 +3,18 @@ import paddle.*;
 public class FINSServer extends ServerState {
 
 	private TemplateFile spa;
+	private String localAddress;
 	
-	public FINSServer () {
+	public FINSServer ( String localAddress ) {
+		this.localAddress = localAddress;
 		spa = new TemplateFile( "index.html", "////" );
+		System.out.println( "FINS Server using local address: "+localAddress );
 	}
 	
-	public FINSCommand finsCmd ( QueryString qs ) {
+	public String finsCmd ( QueryString qs ) {
 		try {
 			return new FINSCommand(
-				qs.get		( "localAddr" 			),
+				localAddress,
 				qs.get		( "remoteAddr"			),
 				qs.getInt	( "remotePort", 	9600	),
 			
@@ -19,10 +22,10 @@ public class FINSServer extends ServerState {
 				qs.getInt	( "readLength", 	1 	),
 				qs.get		( "writeData" 			).split("\\%2C")
 			
-			);
+			).toString();
 		} catch (Exception e) {
 			e.printStackTrace();
-			return null;
+			return "";
 		}
 	}
 
@@ -38,11 +41,10 @@ public class FINSServer extends ServerState {
 		} else if (session.path("/")) {
 			QueryString qs = new QueryString( session.request().body() );
 			spa
-				.replace( "localAddr", qs.get("localAddr") )
 				.replace( "remoteAddr", qs.get("remoteAddr") )
 				.replace( "memAddr", qs.get("memAddr") )
 				.replace( "readLength", qs.get("readLength") )
-				.replace( "readData", finsCmd( qs ).toString() )
+				.replace( "readData", finsCmd( qs ) )
 			;
 			session.response().setBody( spa.toString() );
 			
@@ -50,7 +52,7 @@ public class FINSServer extends ServerState {
 	}
 	
 	public static void main ( String[] args ) {
-		ServerState state = new FINSServer();
+		ServerState state = new FINSServer( args[0] );
 		new ServerHTTP( state, 8080, "FINS Server" );
 	}
 
