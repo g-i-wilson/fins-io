@@ -40,11 +40,17 @@ public class FINSServer extends ServerState {
 			);
 		} else if (session.path("/")) {
 			QueryString qs = new QueryString( session.request().body() );
+			String hexStr = "";
+			try {
+				hexStr = "0x"+String.join(",0x", finsCmd( qs ).split(","));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			spa
 				.replace( "remoteAddr", qs.get("remoteAddr") )
 				.replace( "memAddr", qs.get("memAddr") )
 				.replace( "readLength", qs.get("readLength") )
-				.replace( "readData", finsCmd( qs ) )
+				.replace( "readData", hexStr )
 			;
 			session.response().setBody( spa.toString() );
 			
