@@ -2,19 +2,25 @@ import paddle.*;
 
 public class FINSServer extends ServerState {
 
-	private TemplateFile spa;
+	private TemplateFile formHTML;
+	private TemplateFile spaHTML;
+	private TemplateFile plotlyJS;
+	private TemplateFile machinesJSON;
 	private String localAddress;
 	
 	public FINSServer ( String localAddress ) {
 		this.localAddress = localAddress;
-		spa = new TemplateFile( "index.html", "////" );
+		plotlyJS = new TemplateFile( "plotly-latest.min.js" );
+		formHTML = new TemplateFile( "index.html", "////" );
+		machinesJSON = new TemplateFile( "../machines.json" );
+		spaHTML = new TemplateFile( "spa.html", "////" );
 		System.out.println( "FINS Server using local address: "+localAddress );
 	}
 	
-	public String finsCmd ( QueryString qs ) {
+	public String[] finsCmd ( QueryString qs ) {
 		System.out.println( "QueryString: "+qs );
 		try {
-			return new FINSCommand(
+			FINSCommand fc = new FINSCommand(
 				localAddress,
 				qs.get		( "remoteAddr"			),
 				qs.getInt	( "remotePort", 	9600	),
@@ -23,37 +29,52 @@ public class FINSServer extends ServerState {
 				qs.getInt	( "readLength", 	1 	),
 				qs.get		( "writeData" 			).split("\\%2C")
 			
-			).toString();
+			);
+			System.out.println( fc.stderr().text() );
+			return fc.hexValues();
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "";
+			return null;
 		}
+	}
+	
+	public String jsHex ( String[] hexValues ) {
+		return "0x" + String.join( ",0x", hexValues );
+	}
+
+	public String jsonHex ( String[] hexValues ) {
+		return "\"0x" + String.join( "\",\"0x", hexValues ) + "\"";
 	}
 
 	public void respond ( InboundHTTP session ) {
 	
 		if (session.path("/json")) {
-			session.response().setBody( "application/json" );
+			session.response().setMIME( "application/json" );
 			session.response().setBody(
 				"{\"readData\":["+
-				finsCmd( new QueryString( session.request().body() ) )+
+				jsonHex( finsCmd( new QueryString( session.request().body() ) ) )+
 				"]}"
 			);
-		} else if (session.path("/")) {
+		} else if (session.path("/plotly")) {
+			session.response().setMIME( "text/javascript" );
+			session.response().setBody( plotlyJS.toString() );
+		
+		} else if (session.path("/spa")) {
+			session.response().setBody( spaHTML.toString() );
+			
+		} else if (session.path("/machines")) {
+			session.response().setMIME( "application/json" );
+			session.response().setBody( machinesJSON.toString() );
+			
+		} else {
 			QueryString qs = new QueryString( session.request().body() );
-			String hexStr = "";
-			try {
-				hexStr = "0x"+String.join(",0x", finsCmd( qs ).split(","));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			spa
+			formHTML
 				.replace( "remoteAddr", qs.get("remoteAddr") )
 				.replace( "memAddr", qs.get("memAddr") )
 				.replace( "readLength", qs.get("readLength") )
-				.replace( "readData", hexStr )
+				.replace( "readData", jsHex( finsCmd( qs ) ) )
 			;
-			session.response().setBody( spa.toString() );
+			session.response().setBody( formHTML.toString() );
 			
 		}
 	}

@@ -1,3 +1,4 @@
 *.class
 /fins-io-cmd
 /fins-io
+*.json

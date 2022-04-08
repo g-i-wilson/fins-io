@@ -2,11 +2,11 @@ import paddle.*;
 
 public class FINSCommand extends SystemCommand {
 
-	private String readData;
+	private String[] readData;
 
 	private static int lastOctet ( String ipv4Address ) throws Exception
 	{
-		System.out.println( "IPv4 address: "+ipv4Address );
+		//System.out.println( "IPv4 address: "+ipv4Address );
 		return Integer.parseInt( ipv4Address.split("\\.")[3] );
 	}
 
@@ -61,12 +61,20 @@ public class FINSCommand extends SystemCommand {
 			5000 // waits this long before destroying or forciblyDestroying process
 		);
 		run();
-		readData = stdout().text();
+		try {
+			readData = stdout().text().split(",");
+		} catch (Exception e) {
+			readData = new String[]{};
+			e.printStackTrace();
+		}
 	}
 	
+	public String[] hexValues () {
+		return readData;
+	}
 	
 	public String toString () {
-		return readData;
+		return "0x"+String.join(",0x", readData);
 	}
 	
 	
