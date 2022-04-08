@@ -6,6 +6,7 @@ public class FINSCommand extends SystemCommand {
 
 	private static int lastOctet ( String ipv4Address ) throws Exception
 	{
+		System.out.println( "IPv4 address: "+ipv4Address );
 		return Integer.parseInt( ipv4Address.split("\\.")[3] );
 	}
 

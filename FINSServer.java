@@ -12,6 +12,7 @@ public class FINSServer extends ServerState {
 	}
 	
 	public String finsCmd ( QueryString qs ) {
+		System.out.println( "QueryString: "+qs );
 		try {
 			return new FINSCommand(
 				localAddress,
