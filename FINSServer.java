@@ -1,24 +1,29 @@
 import paddle.*;
+import canoedb.*;
 
 public class FINSServer extends ServerState {
+
+	private Database database;
 
 	private TemplateFile formHTML;
 	private TemplateFile spaHTML;
 	private TemplateFile plotlyJS;
-	private TemplateFile machinesJSON;
 	private String localAddress;
 	
 	public FINSServer ( String localAddress ) {
 		this.localAddress = localAddress;
+		
+		database = new Database( "../sanoh-machines-db" );
+		
 		plotlyJS = new TemplateFile( "plotly-latest.min.js" );
 		formHTML = new TemplateFile( "index.html", "////" );
-		machinesJSON = new TemplateFile( "../machines.json" );
 		spaHTML = new TemplateFile( "spa.html", "////" );
+		
 		System.out.println( "FINS Server using local address: "+localAddress );
 	}
 	
 	public String[] finsCmd ( QueryString qs ) {
-		System.out.println( "QueryString: "+qs );
+		System.out.println( "QueryString ("+localAddress+"): "+qs );
 		try {
 			FINSCommand fc = new FINSCommand(
 				localAddress,
@@ -39,10 +44,12 @@ public class FINSServer extends ServerState {
 	}
 	
 	public String jsHex ( String[] hexValues ) {
+		if (hexValues == null) return "";
 		return "0x" + String.join( ",0x", hexValues );
 	}
 
 	public String jsonHex ( String[] hexValues ) {
+		if (hexValues == null) return "";
 		return "\"0x" + String.join( "\",\"0x", hexValues ) + "\"";
 	}
 
@@ -63,8 +70,19 @@ public class FINSServer extends ServerState {
 			session.response().setBody( spaHTML.toString() );
 			
 		} else if (session.path("/machines")) {
+			Query machineList = database.query( session.connectionId() )
+				.input( "machines", "Customer", "" )
+				.output( "machines", "Customer" )
+				.output( "machines", "Type" )
+				.output( "machines", "Part Number" )
+				.output( "machines", "Network Address" )
+				.output( "machines", "Map X" )
+				.output( "machines", "Map Y" )
+				.execute();
+			;
+			System.out.println( machineList.toString() );
 			session.response().setMIME( "application/json" );
-			session.response().setBody( machinesJSON.toString() );
+			session.response().setBody( machineList.rows().toJSON() );
 			
 		} else {
 			QueryString qs = new QueryString( session.request().body() );
@@ -79,9 +97,12 @@ public class FINSServer extends ServerState {
 		}
 	}
 	
-	public static void main ( String[] args ) {
-		ServerState state = new FINSServer( args[0] );
-		new ServerHTTP( state, 8080, "FINS Server" );
+	public static void main ( String[] args ) throws Exception {
+		new ServerHTTP(
+			new FINSServer( args[0] ), // args[0]: local IP address to use
+			Integer.parseInt( args[1] ), // args[1]: local port to use
+			"FINS Server"
+		);
 	}
 
 }

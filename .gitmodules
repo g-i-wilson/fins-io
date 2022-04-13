@@ -4,3 +4,6 @@
 [submodule "paddle"]
 	path = paddle
 	url = git@github.com:g-i-wilson/paddle.git
+[submodule "canoedb"]
+	path = canoedb
+	url = https://github.com/g-i-wilson/canoedb.git

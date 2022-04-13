@@ -2,11 +2,12 @@ import paddle.*;
 
 public class FINSCommand extends SystemCommand {
 
+	private static final String execName = "fins-io-cmd";
 	private String[] readData;
 
 	private static int lastOctet ( String ipv4Address ) throws Exception
 	{
-		//System.out.println( "IPv4 address: "+ipv4Address );
+		System.out.println( "IPv4 address: "+ipv4Address );
 		return Integer.parseInt( ipv4Address.split("\\.")[3] );
 	}
 
@@ -48,7 +49,7 @@ public class FINSCommand extends SystemCommand {
 	) throws Exception
 	{
 		super(
-			"./fins-io-cmd "+
+			"./"+execName+" "+
 			localFinsNet+","+localFinsNode+","+localFinsUnit+" "+
 			remoteAddress+" "+
 			remotePort+" "+
@@ -56,17 +57,22 @@ public class FINSCommand extends SystemCommand {
 			memAddr+" "+readLength+" "+
 			String.join( " ", writeData ),
 			
-			"fins-io-cmd",
+			execName,
 			
 			5000 // waits this long before destroying or forciblyDestroying process
 		);
 		run();
-		try {
-			readData = stdout().text().split(",");
-		} catch (Exception e) {
-			readData = new String[]{};
-			e.printStackTrace();
+		if (exitValue() > 0) {
+			throw new Exception( this.getClass().getName()+": "+execName+" exit code "+exitValue()+"\n"+stderr().text() );
+		} else {
+			readData = stdout().text().trim().split(",");
 		}
+		//try {
+		//	readData = stdout().text().trim().split(",");
+		//} catch (Exception e) {
+		//	readData = new String[]{};
+		//	e.printStackTrace();
+		//}
 	}
 	
 	public String[] hexValues () {

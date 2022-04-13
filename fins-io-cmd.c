@@ -75,6 +75,7 @@ int main(int argc, char* argv[]) {
 	int readLength;
 	sscanf( argv[OP_R_LENGTH], "%d", &readLength );
 	
+	/*
 	// verify:
 	fprintf( stderr, "local FINS network: %d\n",localFinsNet );
 	fprintf( stderr, "local FINS node: %d\n", localFinsNode );
@@ -89,9 +90,11 @@ int main(int argc, char* argv[]) {
 
 	fprintf( stderr, "PLC first address: %s\n", argv[OP_MEM_ADDR] );
 	fprintf( stderr, "PLC read length: %d\n", readLength );
+	*/
 	
 	// libfins variables
 	int err = 0, err_max = 10;
+	char err_msg[64];
 	struct fins_sys_tp *c = NULL;
 
 
@@ -110,13 +113,19 @@ int main(int argc, char* argv[]) {
 		&err,			// error code, if an error occured
 		err_max			// maximum error code
 	);
-	fprintf( stderr,"Connection: [%u]\n", err);
-	char err_msg[64];
-	finslib_errmsg(err, err_msg, 64);
-	fprintf( stderr,"Connection: [%s]\n", err_msg);
+	
+	if (err == 0) {
+		fprintf( stderr,"Connected to %s:%d...\n", argv[REMOTE_IP_ADDR], remotePort );
+	} else {
+		finslib_errmsg(err, err_msg, 64);
+		fprintf( stderr,"Error while connecting: [%u] [%s]\n", err, err_msg);
+		finslib_disconnect(sys);
+		return err;
+	}
 
+	 
 
-	/* Get PLC details */
+	// Get PLC details
 
 	struct fins_cpudata_tp cpudata;
 	int plc_commandl = finslib_cpu_unit_data_read(
@@ -128,16 +137,21 @@ int main(int argc, char* argv[]) {
 		err_msg,
 		64
 	);
-	fprintf( stderr,
-		"Connection: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
-		plc_commandl,
-		err_msg,
-		sys->error_count,
-		sys->sockfd
-	);
+	if (plc_commandl > 0) {
+		fprintf( stderr,
+			"Error while getting PLC details: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
+			plc_commandl,
+			err_msg,
+			sys->error_count,
+			sys->sockfd
+		);
+		finslib_disconnect(sys);
+		return plc_commandl;
+	}
 
+	/*
 
-	/* Print CPU Status */
+	// Print CPU Status
 
 	struct fins_cpustatus_tp cpustat;
 	int cpustat_ret = finslib_cpu_unit_status_read(sys, &cpustat);
@@ -146,7 +160,7 @@ int main(int argc, char* argv[]) {
 	fprintf( stderr,"CPU Unit Stat: [%s]\n", err_msg);
 		
 
-	/* Print CPU Data */
+	// Print CPU Data
 
 	struct fins_cpudata_tp cpuinfo;
 	int cpu_ret = finslib_cpu_unit_data_read(sys, &cpuinfo);
@@ -155,12 +169,14 @@ int main(int argc, char* argv[]) {
 	fprintf( stderr,"CPU Unit Data: [%s]\n", err_msg);
 
 
+	*/
+
 	// Write (if there are additional arguments)
 	
 	if ( argc > OP_W_DATA ) {
 		
 		int writeLength = argc - OP_W_DATA;
-		fprintf( stderr, "WRITE %s (%d)\n", argv[OP_MEM_ADDR], writeLength );
+		fprintf( stderr, "WRITE: %s (%d)\n", argv[OP_MEM_ADDR], writeLength );
 		
 		uint16_t writeBuf[writeLength];
 		fprintf( stderr, "%s", argv[OP_MEM_ADDR] );
@@ -178,14 +194,18 @@ int main(int argc, char* argv[]) {
 			writeLength
 		);
 		
-		finslib_errmsg(write_ret, err_msg, 64);
-		fprintf( stderr, "Write: [%s]\n", err_msg);
+		if (write_ret > 0) {
+			finslib_errmsg(write_ret, err_msg, 64);
+			fprintf( stderr, "WRITE error: [%d] [%s]\n", write_ret, err_msg);
+			finslib_disconnect(sys);
+			return write_ret;
+		}
 		
 	}
 
 	// Read (always)
 	
-	fprintf( stderr, "READ %s (%d)\n", argv[OP_MEM_ADDR], readLength );
+	fprintf( stderr, "READ: %s (%d)\n", argv[OP_MEM_ADDR], readLength );
 		
 	uint16_t readBuf[readLength];
 	int read_ret = finslib_memory_area_read_uint16(
@@ -194,19 +214,24 @@ int main(int argc, char* argv[]) {
 		readBuf,
 		readLength
 	);
+	
 	for (int i=0; i<readLength; i++) {
 		printf( "%04x", readBuf[i] );
 		if (i<readLength-1) { printf( "," ); }
 	}
-	//printf( "\n" );
+	printf( "\n" );
 
-	finslib_errmsg(read_ret, err_msg, 64);
-	fprintf( stderr, "Read: [%s]\n", err_msg);
-		
-
+	if (read_ret > 0) {
+		finslib_errmsg(read_ret, err_msg, 64);
+		fprintf( stderr, "WRITE error: [%d] [%s]\n", read_ret, err_msg);
+		finslib_disconnect(sys);
+		return read_ret;
+	}
 	
 
-	/* Print Error Log */
+	/*
+
+	// Print Error Log
 
 	struct fins_errordata_tp errordat;
 	size_t num_to_read = 1;
@@ -225,8 +250,10 @@ int main(int argc, char* argv[]) {
 		"Read Error Log:    Error Message Was: [%s] - Requested: [%zu] Records That Were Read: [%zu]\n",
 		err_msg, num_to_read, num_read
 	);
+	
+	*/
 
-	/* Disconnect */
+	// Disconnect
 
 	finslib_disconnect(sys);
 	fprintf( stderr,"Connection closed.\n");
