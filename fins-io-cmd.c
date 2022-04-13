@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 	);
 	if (plc_commandl > 0) {
 		fprintf( stderr,
-			"Error while getting PLC details: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
+			"Error reading PLC specs: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
 			plc_commandl,
 			err_msg,
 			sys->error_count,
@@ -147,19 +147,28 @@ int main(int argc, char* argv[]) {
 		);
 		finslib_disconnect(sys);
 		return plc_commandl;
+	} else {
+		fprintf( stderr, "Model: %s\n", cpudata.model );
 	}
 
-	/*
 
 	// Print CPU Status
 
 	struct fins_cpustatus_tp cpustat;
 	int cpustat_ret = finslib_cpu_unit_status_read(sys, &cpustat);
-	
-	finslib_errmsg(cpustat_ret, err_msg, 64);
-	fprintf( stderr,"CPU Unit Stat: [%s]\n", err_msg);
+
+	if (cpustat_ret > 0) {
+		finslib_errmsg(cpustat_ret, err_msg, 64);
+		fprintf( stderr,"Error reading CPU status: [%d] [%s]\n", cpustat_ret, err_msg);
+	} else {
+		fprintf( stderr, "Running: %s\n", cpustat.running ? "true" : "false" );
+		fprintf( stderr, "Run Mode: %u\n", cpustat.run_mode );
+		fprintf( stderr, "Error Code: %u\n", cpustat.error_code );
+		fprintf( stderr, "Error Message: %s\n", cpustat.error_message );
+	}
 		
 
+	/*
 	// Print CPU Data
 
 	struct fins_cpudata_tp cpuinfo;
@@ -170,6 +179,8 @@ int main(int argc, char* argv[]) {
 
 
 	*/
+	
+	
 
 	// Write (if there are additional arguments)
 	
