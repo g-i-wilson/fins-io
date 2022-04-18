@@ -14,6 +14,8 @@ public class FINSCommand extends SystemCommand {
 
 	public FINSCommand (
 		String 	localAddress,
+		int 	remoteFinsNet,
+		int	remoteFinsUnit,
 		String 	remoteAddress,
 		int	remotePort,
 		
@@ -23,9 +25,9 @@ public class FINSCommand extends SystemCommand {
 	) throws Exception
 	{
 		this(
-			1, lastOctet( localAddress ), 0,
+			remoteFinsNet, lastOctet( localAddress ), remoteFinsUnit,
 			localAddress, remoteAddress, remotePort,
-			1, lastOctet( remoteAddress ), 0,
+			remoteFinsNet, lastOctet( remoteAddress ), remoteFinsUnit,
 			memAddr, readLength, writeData
 		);
 	}
@@ -89,6 +91,8 @@ public class FINSCommand extends SystemCommand {
 	
 		FINSCommand fc = new FINSCommand(
 			args[0],
+			0,
+			0,
 			args[1],
 			9600,
 			args[2],

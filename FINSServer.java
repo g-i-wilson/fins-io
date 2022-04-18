@@ -27,11 +27,13 @@ public class FINSServer extends ServerState {
 		try {
 			FINSCommand fc = new FINSCommand(
 				localAddress,
+				qs.getInt	( "remoteFinsNet"	, 0	),
+				qs.getInt	( "remoteFinsUnit"	, 0	),
 				qs.get		( "remoteAddr"			),
-				qs.getInt	( "remotePort", 	9600	),
+				qs.getInt	( "remotePort" 		, 9600	),
 			
-				qs.get		( "memAddr",	   "CIO0000" 	),
-				qs.getInt	( "readLength", 	1 	),
+				qs.get		( "memAddr"		, "DM0" ),
+				qs.getInt	( "readLength"	 	, 1 	),
 				qs.get		( "writeData" 			).split("\\%2C")
 			
 			);
@@ -84,10 +86,13 @@ public class FINSServer extends ServerState {
 			session.response().setMIME( "application/json" );
 			session.response().setBody( machineList.rows().toJSON() );
 			
-		} else {
+		} else if (session.path("/")) {
 			QueryString qs = new QueryString( session.request().body() );
 			formHTML
+				.replace( "remoteFinsNet", qs.get("remoteFinsNet") )
+				.replace( "remoteFinsUnit", qs.get("remoteFinsUnit") )
 				.replace( "remoteAddr", qs.get("remoteAddr") )
+				.replace( "remotePort", qs.get("remotePort") )
 				.replace( "memAddr", qs.get("memAddr") )
 				.replace( "readLength", qs.get("readLength") )
 				.replace( "readData", jsHex( finsCmd( qs ) ) )
