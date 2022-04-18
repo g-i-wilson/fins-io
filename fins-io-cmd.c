@@ -160,11 +160,11 @@ int main(int argc, char* argv[]) {
 	if (cpustat_ret > 0) {
 		finslib_errmsg(cpustat_ret, err_msg, 64);
 		fprintf( stderr,"Error reading CPU status: [%d] [%s]\n", cpustat_ret, err_msg);
+		fprintf( stderr, "Error Code: %u\n", cpustat.error_code );
+		fprintf( stderr, "Error Message: %s\n", cpustat.error_message );
 	} else {
 		fprintf( stderr, "Running: %s\n", cpustat.running ? "true" : "false" );
 		fprintf( stderr, "Run Mode: %u\n", cpustat.run_mode );
-		fprintf( stderr, "Error Code: %u\n", cpustat.error_code );
-		fprintf( stderr, "Error Message: %s\n", cpustat.error_message );
 	}
 		
 
