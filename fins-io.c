@@ -31,12 +31,14 @@
 // compile:	gcc -o fins-io fins-io.c -L /home/giw/fins-io/libfins/lib/ -l fins
 
 
-enum STATE {
-	READY,
-	ADDRESS,
-	PROCESS,
-	ERROR
-};
+// command line arguments
+#define LOCAL_FINS_ADDR 1
+
+#define REMOTE_IP_ADDR 2
+#define REMOTE_IP_PORT 3
+
+#define REMOTE_FINS_ADDR 4
+
 
 int hex_char_to_int( char c ) {
 	if (c>=48 && c<=57) {
@@ -68,7 +70,7 @@ int main(int argc, char* argv[]) {
 	/* Init */
 
 	// need at least an IP address and read address
-	if (argc < 5) {
+	if (argc < 4) {
 		fprintf( stderr, "Arguments: <LOCAL_FINS> <REMOTE_IP> <REMOTE_FINS>\n");
 		fprintf( stderr, "example execute: 1,2,0 10.0.0.3 9600 1,3,0\n" );
 		fprintf( stderr, "example stdin: w DM500 2 ffff 1212 r DM501 1 q\n" );
@@ -88,26 +90,26 @@ int main(int argc, char* argv[]) {
 	// local FINS
 	// typical: 1,[last_IP_byte],0
 	int localFinsNet, localFinsNode, localFinsUnit;
-	sscanf( argv[1], "%d,%d,%d", &localFinsNet, &localFinsNode, &localFinsUnit );
+	sscanf( argv[LOCAL_FINS_ADDR], "%d,%d,%d", &localFinsNet, &localFinsNode, &localFinsUnit );
 
 	// remote IP
 	// typical: [IP_addr 9600]
 	char remoteAddress[40];
 	int remotePort;
-	sscanf( argv[2], "%19s", remoteAddress );
-	sscanf( argv[3], "%d", &remotePort );
+	sscanf( argv[REMOTE_IP_ADDR], "%19s", remoteAddress );
+	sscanf( argv[REMOTE_IP_PORT], "%d", &remotePort );
 	
 	// remote FINS
 	// typical: 1,[last_IP_byte],0
 	int remoteFinsNet, remoteFinsNode, remoteFinsUnit;
-	sscanf( argv[4], "%d,%d,%d", &remoteFinsNet, &remoteFinsNode, &remoteFinsUnit );
+	sscanf( argv[REMOTE_FINS_ADDR], "%d,%d,%d", &remoteFinsNet, &remoteFinsNode, &remoteFinsUnit );
 	
 	// verify:
 	fprintf( stderr, "local FINS network: %d\n",localFinsNet );
 	fprintf( stderr, "local FINS node: %d\n", localFinsNode );
 	fprintf( stderr, "local FINS unit: %d\n", localFinsUnit );
 	
-	fprintf( stderr, "remote IP address: %s\n", remoteAddress );
+	fprintf( stderr, "remote IP address: %s\n", argv[REMOTE_IP_ADDR] );
 	fprintf( stderr, "remote IP port: %d\n", remotePort );
 	
 	fprintf( stderr, "remote FINS network: %d\n", remoteFinsNet );
@@ -116,6 +118,7 @@ int main(int argc, char* argv[]) {
 	
 	// libfins variables
 	int err = 0, err_max = 10;
+	char err_msg[64];
 	struct fins_sys_tp *c = NULL;
 
 
@@ -123,7 +126,7 @@ int main(int argc, char* argv[]) {
 	
 	struct fins_sys_tp *sys = finslib_tcp_connect(
 		c,			// null pointer to context structure
-		remoteAddress,
+		argv[REMOTE_IP_ADDR],
 		remotePort,		// TCP port
 		localFinsNet,		// local FINS network number
 		localFinsNode,		// local FINS node number
@@ -134,13 +137,19 @@ int main(int argc, char* argv[]) {
 		&err,			// error code, if an error occured
 		err_max			// maximum error code
 	);
-	fprintf( stderr,"Connection: [%u]\n", err);
-	char err_msg[64];
-	finslib_errmsg(err, err_msg, 64);
-	fprintf( stderr,"Connection: [%s]\n", err_msg);
+	
+	if (err == 0) {
+		fprintf( stderr,"Connected to %s:%d...\n", argv[REMOTE_IP_ADDR], remotePort );
+	} else {
+		finslib_errmsg(err, err_msg, 64);
+		fprintf( stderr,"Error while connecting: [%u] [%s]\n", err, err_msg);
+		finslib_disconnect(sys);
+		return err;
+	}
 
+	 
 
-	/* Get PLC details */
+	// Get PLC details
 
 	struct fins_cpudata_tp cpudata;
 	int plc_commandl = finslib_cpu_unit_data_read(
@@ -152,31 +161,35 @@ int main(int argc, char* argv[]) {
 		err_msg,
 		64
 	);
-	fprintf( stderr,
-		"Connection: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
-		plc_commandl,
-		err_msg,
-		sys->error_count,
-		sys->sockfd
-	);
+	if (plc_commandl > 0) {
+		fprintf( stderr,
+			"Error reading PLC specs: [%d] [%s] - sys->error_count = [%u] sockfd: [%u]\n",
+			plc_commandl,
+			err_msg,
+			sys->error_count,
+			sys->sockfd
+		);
+		finslib_disconnect(sys);
+		return plc_commandl;
+	} else {
+		fprintf( stderr, "Model: %s\n", cpudata.model );
+	}
 
 
-	/* Print CPU Status */
+	// Print CPU Status
 
 	struct fins_cpustatus_tp cpustat;
 	int cpustat_ret = finslib_cpu_unit_status_read(sys, &cpustat);
-	
-	finslib_errmsg(cpustat_ret, err_msg, 64);
-	fprintf( stderr,"CPU Unit Stat: [%s]\n", err_msg);
-		
 
-	/* Print CPU Data */
-
-	struct fins_cpudata_tp cpuinfo;
-	int cpu_ret = finslib_cpu_unit_data_read(sys, &cpuinfo);
-
-	finslib_errmsg(cpu_ret, err_msg, 64);
-	fprintf( stderr,"CPU Unit Data: [%s]\n", err_msg);
+	if (cpustat_ret > 0) {
+		finslib_errmsg(cpustat_ret, err_msg, 64);
+		fprintf( stderr,"Error reading CPU status: [%d] [%s]\n", cpustat_ret, err_msg);
+		fprintf( stderr, "Error Code: %u\n", cpustat.error_code );
+		fprintf( stderr, "Error Message: %s\n", cpustat.error_message );
+	} else {
+		fprintf( stderr, "Running: %s\n", cpustat.running ? "true" : "false" );
+		fprintf( stderr, "Run Mode: %u\n", cpustat.run_mode );
+	}
 
 		
 	/* Continuous R/W operations from stdin */
@@ -196,6 +209,13 @@ int main(int argc, char* argv[]) {
 				readBuf,
 				length
 			);
+			if (read_ret > 0) {
+				finslib_errmsg(read_ret, err_msg, 64);
+				fprintf( stderr, "READ error: [%d] [%s]\n", read_ret, err_msg);
+				finslib_disconnect(sys);
+				return read_ret;
+			}
+
 			printf( "%s", memAddress );
 			for (int i=0; i<length; i++) {
 				printf( ",%04x", readBuf[i] );
@@ -203,7 +223,7 @@ int main(int argc, char* argv[]) {
 			printf( "\n" );
 
 			finslib_errmsg(read_ret, err_msg, 64);
-			fprintf( stderr, "Read: [%s]\n", err_msg);
+			fprintf( stderr, "READ: [%s]\n", err_msg);
 		
 		} else if (command[0] == 'W' || command[0] == 'w') {
 			scanf( "%19s %d", memAddress, &length );
@@ -224,9 +244,15 @@ int main(int argc, char* argv[]) {
 				writeBuf,
 				length
 			);
+			if (write_ret > 0) {
+				finslib_errmsg(write_ret, err_msg, 64);
+				fprintf( stderr, "WRITE error: [%d] [%s]\n", write_ret, err_msg);
+				finslib_disconnect(sys);
+				return write_ret;
+			}
 			
 			finslib_errmsg(write_ret, err_msg, 64);
-			fprintf( stderr, "Write: [%s]\n", err_msg);
+			fprintf( stderr, "WRITE: [%s]\n", err_msg);
 		
 		} else if (command[0] == 'Q' || command[0] == 'q') {
 			break;
@@ -234,28 +260,6 @@ int main(int argc, char* argv[]) {
 
 	}
 	
-
-	/* Print Error Log */
-
-	struct fins_errordata_tp errordat;
-	size_t num_to_read = 1;
-	size_t num_read = 0;
-	int err_ret = finslib_error_log_read(
-		sys,
-		&errordat,
-		0,
-		&num_to_read,
-		&num_read
-	);
-
-	finslib_errmsg(err_ret, err_msg, 64);
-	fprintf(
-		stderr,
-		"Read Error Log:    Error Message Was: [%s] - Requested: [%zu] Records That Were Read: [%zu]\n",
-		err_msg, num_to_read, num_read
-	);
-
-	/* Disconnect */
 
 	finslib_disconnect(sys);
 	fprintf( stderr,"Connection closed.\n");

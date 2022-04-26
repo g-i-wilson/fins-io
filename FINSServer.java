@@ -3,17 +3,20 @@ import canoedb.*;
 
 public class FINSServer extends ServerState {
 
-	private Database database;
+	private Database machines;
 
 	private TemplateFile formHTML;
 	private TemplateFile spaHTML;
 	private TemplateFile plotlyJS;
 	private String localAddress;
 	
-	public FINSServer ( String localAddress ) {
+	private StringMap3D<String> currentMachineInfo;
+	private StringMap3D<String> nextMachineInfo;
+	
+	public FINSServer ( String localAddress, String machinesDir ) {
 		this.localAddress = localAddress;
 		
-		database = new Database( "../sanoh-machines-db" );
+		machines = new Database( machinesDir );
 		
 		plotlyJS = new TemplateFile( "plotly-latest.min.js" );
 		formHTML = new TemplateFile( "index.html", "////" );
@@ -71,20 +74,40 @@ public class FINSServer extends ServerState {
 		} else if (session.path("/spa")) {
 			session.response().setBody( spaHTML.toString() );
 			
-		} else if (session.path("/machines")) {
-			Query machineList = database.query( session.connectionId() )
-				.input( "machines", "Customer", "" )
-				.output( "machines", "Customer" )
-				.output( "machines", "Type" )
-				.output( "machines", "Part Number" )
-				.output( "machines", "Network Address" )
-				.output( "machines", "Map X" )
-				.output( "machines", "Map Y" )
-				.execute();
-			;
-			System.out.println( machineList.toString() );
+		} else if (
+			session.path("/read") ||
+			session.path("/write")
+		) {
+			boolean writeMode = session.path("/write");
 			session.response().setMIME( "application/json" );
-			session.response().setBody( machineList.rows().toJSON() );
+			session.response().setBody(
+				(new Query( session.request().body(), writeMode ))
+				.rows()
+				.toJSON()
+			);
+			
+		} else if (session.path("/machines")) {
+			nextMachineInfo =
+				machines
+				.query(session.connectionId())
+				.output("machines", "Network Address")
+				.output("machines", "On Address")
+				.output("machines", "On Bit")
+				.output("machines", "Cycle Address")
+				.output("machines", "Cycle Bit")
+				.output("machines", "Alarm Address")
+				.output("machines", "Alarm Bit")
+				.output("machines", "Accept Count Address")
+				.output("machines", "Reject Count Address")
+				.execute( "", false, "or", true, true )
+				.rows();
+			System.out.println( "machineInfo: "+machineInfo );
+			for (String machine : machineInfo.keys("machines") ) {
+				nextMachineInfo.write( "machines", machine, "On Status", 
+				nextMachineInfo.read("machines", machine, "
+			}
+			session.response().setMIME( "application/json" );
+			session.response().setBody( );
 			
 		} else if (session.path("/")) {
 			QueryString qs = new QueryString( session.request().body() );
@@ -103,9 +126,9 @@ public class FINSServer extends ServerState {
 	}
 	
 	public static void main ( String[] args ) throws Exception {
-		new ServerHTTP(
-			new FINSServer( args[0] ), // args[0]: local IP address to use
-			Integer.parseInt( args[1] ), // args[1]: local port to use
+		new ServerHTTP( // <local_IP> <local_port> <machines_dir>
+			new FINSServer( args[0], args[2] ),
+			Integer.parseInt( args[1] ),
 			"FINS Server"
 		);
 	}
