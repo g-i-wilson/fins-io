@@ -3,7 +3,8 @@ import paddle.*;
 
 public class FINSRead extends SystemCommand {
 
-	private Map<String,Integer> memoryMap;
+	private Map<String,String> memoryMap;
+	boolean verbose;
 
 	public static String readString ( String[] addresses ) {
 		String str = "";
@@ -21,29 +22,32 @@ public class FINSRead extends SystemCommand {
 		String remoteFinsAddress, // <net>,<node>,<unit>
 		
 		String[] addresses,
-		Map<String,Integer> memoryMap,
-		int timeout
+		Map<String,String> memoryMap,
+		int timeout,
+		boolean verbose
 	) {
 		super(
 			"./fins-read "+localFinsAddress+" "+remoteNetAddress+" "+remoteNetPort+" "+remoteFinsAddress + readString(addresses),
 			remoteNetAddress+":"+remoteNetPort,
-			timeout
+			timeout,
+			false
 		);
 		this.memoryMap = memoryMap;
+		this.verbose = verbose;
 	}
 	
 	public void postExec () {
-		System.out.println( "stdout: "+ stdout().text() );
+		// System.out.println( "stdout:\n"+ stdout().text() );
 		try {
 			for (String tuple : stdout().text().split("\n")) {
-				System.out.println( "tuple: "+tuple );
 				String[] keyValue = tuple.split(",");
-				memoryMap.put( keyValue[0], Integer.valueOf(keyValue[1],16) );
+				memoryMap.put( keyValue[0], keyValue[1] );
 			}
 		} catch (Exception e) {
+			System.out.println( this.getClass().getName()+" '"+getName()+"' ERROR:" );
 			e.printStackTrace();
 		}
-		System.out.println( memoryMap );
+		if (verbose) System.out.println( this.getClass().getName()+" '"+getName()+"': "+memoryMap );
 	}
 	
 	
@@ -51,7 +55,7 @@ public class FINSRead extends SystemCommand {
 	
 	public static void main (String[] args) {
 	
-		Map<String,Integer> testMap = new HashMap<>();
+		Map<String,String> testMap = new HashMap<>();
 		
 		int firstArgs = 4;
 		String[] addresses = new String[args.length-firstArgs];
@@ -66,9 +70,10 @@ public class FINSRead extends SystemCommand {
 			args[3],
 			addresses,
 			testMap,
-			2000
+			2000,
+			true
 		);
 		
-		(new Timer()).scheduleAtFixedRate( fr, 0, 3000 );
+		(new Timer()).scheduleAtFixedRate( fr, 0, 2000 );
 	}
 }
