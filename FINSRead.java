@@ -8,7 +8,7 @@ public class FINSRead extends SystemCommand {
 	public static String readString ( String[] addresses ) {
 		String str = "";
 		for (String addr : addresses) {
-			str += " R "+addr+" 1";
+			str += " "+addr;
 		}
 		return str;
 	}	
@@ -25,7 +25,7 @@ public class FINSRead extends SystemCommand {
 		int timeout
 	) {
 		super(
-			"echo \""+readString(addresses)+" Q\" | ./fins-io "+localFinsAddress+" "+remoteNetAddress+" "+remoteNetPort+" "+remoteFinsAddress,
+			"./fins-read "+localFinsAddress+" "+remoteNetAddress+" "+remoteNetPort+" "+remoteFinsAddress + readString(addresses),
 			remoteNetAddress+":"+remoteNetPort,
 			timeout
 		);

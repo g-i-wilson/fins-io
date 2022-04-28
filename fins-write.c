@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include "libfins/include/fins.h"
 // git repo:	https://github.com/lammertb/libfins
-// compile:	gcc -o fins-read fins-read.c -L /home/giw/fins-io/libfins/lib/ -l fins
+// compile:	gcc -o fins-write fins-write.c -L /home/giw/fins-io/libfins/lib/ -l fins
 
 
 // command line arguments
@@ -48,8 +48,8 @@ int main(int argc, char* argv[]) {
 
 	// need at least an IP address and read address
 	if (argc < 4) {
-		fprintf( stderr, "Arguments: <LOCAL_FINS> <REMOTE_IP> <REMOTE_FINS> <ADDR> <ADDR> .. <ADDR>\n");
-		fprintf( stderr, "example execute: 1,2,0 10.0.0.3 9600 1,3,0 CIO0 DM10 DM500\n" );
+		fprintf( stderr, "Arguments: <LOCAL_FINS> <REMOTE_IP> <REMOTE_FINS> <ADDR> <VAL> ... <ADDR> <VAL>\n");
+		fprintf( stderr, "example execute: 1,2,0 10.0.0.3 9600 1,3,0 CIO0 00FF DM10 12 DM500 abcd\n" );
 		return 1;
 	}
 	
@@ -156,28 +156,39 @@ int main(int argc, char* argv[]) {
 	}
 
 		
-	/* READ */
+	/* WRITE */
 
-	for (int i=FIRST_MEM_ADDR; i<argc; i++) {
+	for (int i=FIRST_MEM_ADDR; i<argc; i+=2) {
 
-		uint16_t readBuf[1];
+		if (i+1 >= argc) {
+			finslib_disconnect(sys);
+			fprintf( stderr, "Note: uneven number of address-value pairs: <ADDR> <VAL> [ .. <ADDR> <VAL>].\n");
+			fprintf( stderr, "      Nothing was written to address '%s'.\n", argv[i] );
+			return 1;
+		}
 		
-		int read_ret = finslib_memory_area_read_uint16(
+		uint16_t writeBuf[1];
+		unsigned int writeBufTemp;
+		
+		sscanf( argv[i+1], "%04x", &writeBufTemp );
+		writeBuf[0] = (uint16_t)writeBufTemp;
+
+		fprintf( stderr, "%s,%x\n", argv[i], writeBuf[0] );
+
+		int write_ret = finslib_memory_area_write_uint16(
 			sys,		// fins struct
-			argv[i],	// memory address
-			readBuf,	// values array (length 1)
+			argv[i], 	// memory address
+			writeBuf,	// values array (in this case just length 1)
 			1		// length
 		);
 		
-		if (read_ret > 0) {
-			finslib_errmsg(read_ret, err_msg, 64);
-			fprintf( stderr, "READ error: [%d] [%s]\n", read_ret, err_msg);
+		if (write_ret > 0) {
+			finslib_errmsg(write_ret, err_msg, 64);
+			fprintf( stderr, "WRITE error: [%d] [%s]\n", write_ret, err_msg);
 			finslib_disconnect(sys);
-			return read_ret;
+			return write_ret;
 		}
-
-		printf( "%s,%04x\n", argv[i], readBuf[0] );
-
+		
 	}
 	
 
