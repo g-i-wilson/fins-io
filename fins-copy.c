@@ -76,6 +76,20 @@ struct fins_sys_tp* connection(
 	
 ) {
 
+	// verify:
+	fprintf( stderr, "New connection with %s:%d\n",	remoteAddress, remotePort );
+	
+	fprintf( stderr, "local FINS network: %d\n",	localFinsNet );
+	fprintf( stderr, "local FINS node: %d\n", 	localFinsNode );
+	fprintf( stderr, "local FINS unit: %d\n", 	localFinsUnit );
+	
+	fprintf( stderr, "remote IP address: %s\n", 	remoteAddress );
+	fprintf( stderr, "remote IP port: %d\n", 	remotePort );
+	fprintf( stderr, "remote FINS network: %d\n", 	remoteFinsNet );
+	fprintf( stderr, "remote FINS node: %d\n", 	remoteFinsNode );
+	fprintf( stderr, "remote FINS unit: %d\n", 	remoteFinsUnit );
+
+
 	// error variables
 	int errNum = 0;
 	int err_max = 10;
@@ -98,7 +112,7 @@ struct fins_sys_tp* connection(
 		err_max			// maximum error code
 	);
 	if (errNum == 0) {
-		fprintf( stderr,"Connected to \n%s:%d\n", remoteAddress, remotePort );
+		fprintf( stderr,"Connected established with %s:%d\n", remoteAddress, remotePort );
 	} else {
 		finslib_errmsg(errNum, errNumMsg, 64);
 		fprintf( stderr,"Error while connecting to %s:%d [%u] [%s]\n", remoteAddress, remotePort, errNum, errNumMsg );
@@ -139,6 +153,8 @@ struct fins_sys_tp* connection(
 		fprintf( stderr, "Error Message: %s\n", plcStat.error_message );
 		return NULL;
 	}
+
+	fprintf( stderr, "\n" );
 	
 	return thisConnection;
 
@@ -179,24 +195,7 @@ int main(int argc, char* argv[]) {
 	// B FINS
 	// typical: 1,[last_IP_byte],0
 	int bFinsNet, bFinsNode, bFinsUnit;
-	sscanf( argv[B_FINS], "%d,%d,%d", &aFinsNet, &aFinsNode, &aFinsUnit );
-	
-	// verify:
-	fprintf( stderr, "local FINS network: %d\n",	localFinsNet );
-	fprintf( stderr, "local FINS node: %d\n", 	localFinsNode );
-	fprintf( stderr, "local FINS unit: %d\n", 	localFinsUnit );
-	
-	fprintf( stderr, "a IP address: %s\n", 		argv[A_ADDR] );
-	fprintf( stderr, "a IP port: %d\n", 		aPort );
-	fprintf( stderr, "a FINS network: %d\n", 	aFinsNet );
-	fprintf( stderr, "a FINS node: %d\n", 		aFinsNode );
-	fprintf( stderr, "a FINS unit: %d\n", 		aFinsUnit );
-	
-	fprintf( stderr, "b IP address: %s\n", 		argv[B_ADDR] );
-	fprintf( stderr, "b IP port: %d\n", 		bPort );
-	fprintf( stderr, "b FINS network: %d\n", 	bFinsNet );
-	fprintf( stderr, "b FINS node: %d\n", 		bFinsNode );
-	fprintf( stderr, "b FINS unit: %d\n", 		bFinsUnit );
+	sscanf( argv[B_FINS], "%d,%d,%d", &bFinsNet, &bFinsNode, &bFinsUnit );
 	
 
 	struct fins_sys_tp *aNull = NULL;
