@@ -1,4 +1,7 @@
 *.class
+*.json
 /fins-io-cmd
 /fins-io
-*.json
+/fins-read
+/fins-write
+/fins-copy
