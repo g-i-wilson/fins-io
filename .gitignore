@@ -1,5 +1,6 @@
 *.class
 *.json
+*.service
 /fins-io-cmd
 /fins-io
 /fins-read

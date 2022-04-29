@@ -1,9 +1,0 @@
-[Unit]
-Description=FINS Server
-
-[Service]
-WorkingDirectory=/home/pi/fins-io
-ExecStart=java FINSServer 10.10.0.11
-
-[Install]
-WantedBy=multi-user.target
