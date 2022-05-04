@@ -4,7 +4,9 @@ import paddle.*;
 public class FINSRead extends SystemCommand {
 
 	private Map<String,String> memoryMap;
-	boolean verbose;
+	private Map<String,String> changesMap;
+	private boolean verbose;
+	private boolean newChanges;
 
 	public static String readString ( String[] addresses ) {
 		String str = "";
@@ -18,7 +20,7 @@ public class FINSRead extends SystemCommand {
 		String localFinsAddress, // <net>,<node>,<unit>
 		
 		String remoteNetAddress,
-		String remoteNetPort,
+		int remoteNetPort,
 		String remoteFinsAddress, // <net>,<node>,<unit>
 		
 		String[] addresses,
@@ -36,24 +38,52 @@ public class FINSRead extends SystemCommand {
 		this.verbose = verbose;
 	}
 	
+	protected void changeEvent ( Map<String,String> changes ) throws Exception {
+		if (verbose) {
+			System.out.println( this.getClass().getName()+" '"+getName()+"' changes: "+changes );
+		}
+	}
+	
+	protected void changeEventException ( Map<String,String> changes, Exception e ) {
+		if (verbose) {
+			System.out.println( this+": unable to send changes "+changes );
+			e.printStackTrace();
+		}
+	}
+	
 	public void postExec () {
 		// System.out.println( "stdout:\n"+ stdout().text() );
 		try {
 			for (String tuple : stdout().text().split("\n")) {
 				String[] keyValue = tuple.split(",");
+				if ( memoryMap.containsKey(keyValue[0]) && !memoryMap.get(keyValue[0]).equals(keyValue[1]) ) {
+					if (! newChanges) {
+						changesMap = new HashMap<>();
+						newChanges = true;
+					}
+					changesMap.put( keyValue[0], keyValue[1] );
+				}
 				memoryMap.put( keyValue[0], keyValue[1] );
+				if ( newChanges ) {
+					try {
+						changeEvent( changesMap );
+						newChanges = false;
+					} catch (Exception e) {
+						changeEventException( changesMap, e );
+					}
+				}
 			}
 		} catch (Exception e) {
-			System.out.println( this.getClass().getName()+" '"+getName()+"' ERROR:" );
-			e.printStackTrace();
+			if (verbose) {
+				System.out.println( this.getClass().getName()+" '"+getName()+"' ERROR:" );
+				e.printStackTrace();
+			}
 		}
 		if (verbose) System.out.println( this.getClass().getName()+" '"+getName()+"': "+memoryMap );
 	}
 	
 	
-	
-	
-	public static void main (String[] args) {
+	public static void main (String[] args) throws Exception {
 	
 		Map<String,String> testMap = new HashMap<>();
 		
@@ -66,7 +96,7 @@ public class FINSRead extends SystemCommand {
 		FINSRead fr = new FINSRead(
 			args[0],
 			args[1],
-			args[2],
+			Integer.parseInt(args[2]),
 			args[3],
 			addresses,
 			testMap,
