@@ -6,6 +6,9 @@ public class FINSMonitor extends FINSRead {
 	private String 			dbNetAddress;
 	private int 			dbNetPort;
 	private String 			dbNetPath;
+	private String			remoteNetAddress;
+	private int			remoteNetPort;
+	private String			remoteFinsAddress;
 	private boolean			connected = false;
 	
 	public FINSMonitor (
@@ -41,18 +44,17 @@ public class FINSMonitor extends FINSRead {
 		this.dbNetAddress = dbNetAddress;
 		this.dbNetPort = dbNetPort;
 		this.dbNetPath = dbNetPath;
+		this.remoteNetAddress = remoteNetAddress;
+		this.remoteNetPort = remoteNetPort;
+		this.remoteFinsAddress = remoteFinsAddress;
 		plcMemory = new HashMap<>();
 		(new Timer()).scheduleAtFixedRate( this, 0, period );
 	}
 	
 	protected void changeEvent ( Map<String,String> changes ) throws Exception {
-		String changesStr = null;
+		String changesStr = "NetworkAddress="+remoteNetAddress+"&NetworkPort="+remoteNetPort+"&FINSAddress="+remoteFinsAddress;
 		for (String key : changes.keySet()) {
-			if (changesStr == null) {
-				changesStr = key+"="+changes.get(key);
-			} else {
-				changesStr += "&"+key+"="+changes.get(key);
-			}
+			changesStr += "&"+key+"="+changes.get(key);
 		}
 		System.out.println(
 			this.getClass().getName()+": "+
