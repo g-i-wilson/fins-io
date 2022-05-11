@@ -7,3 +7,6 @@
 [submodule "canoedb"]
 	path = canoedb
 	url = https://github.com/g-i-wilson/canoedb.git
+[submodule "creek"]
+	path = creek
+	url = https://github.com/g-i-wilson/creek.git
