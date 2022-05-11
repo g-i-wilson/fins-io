@@ -11,10 +11,13 @@ public class FINSMonitorGroup {
 
 	public FINSMonitorGroup (
 		String machinesFilePath,
+		
 		String localFinsAddress,
+		
 		String dbAddress,
 		int dbPort,
 		String eventsPath
+		
 	) throws Exception
 	{
 		machines = new CSVFile( machinesFilePath );
@@ -25,8 +28,6 @@ public class FINSMonitorGroup {
 		
 			Map memoryMap = new HashMap<String,String>();
 			memoryMaps.put( machineData.get(0), memoryMap );
-			
-			
 			
 			try {
 				FINSMonitor fm = new FINSMonitor(
@@ -65,11 +66,13 @@ public class FINSMonitorGroup {
 	
 	public static void main ( String[] args ) throws Exception {
 		FINSMonitorGroup fmg = new FINSMonitorGroup(
-			args[0],
-			args[1],
-			Integer.parseInt(args[2]),
-			args[3],
-			args[4]
+			args[0], // CSV file
+			
+			args[1], // local FINS
+			
+			args[2], // database network address
+			Integer.parseInt(args[3]), // database network port
+			args[4] // database events REST path
 		);
 		
 		while(true) {
