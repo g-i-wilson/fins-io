@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include "libfins/include/fins.h"
+#include "fins-io.h"
 // git repo:	https://github.com/lammertb/libfins
 // compile:	gcc -o fins-copy fins-copy.c -L /home/giw/fins-io/libfins/lib/ -l fins
 
@@ -38,106 +39,6 @@ void signalHandler(int s) {
 }
 
 
-struct fins_sys_tp* connection(
-
-	struct fins_sys_tp	*nullConnection,
-
-	int			localFinsNet,
-	int			localFinsNode,
-	int			localFinsUnit,
-
-	char 			*remoteAddress,
-	int			remotePort,
-
-	int			remoteFinsNet,
-	int			remoteFinsNode,
-	int			remoteFinsUnit
-	
-) {
-
-	// verify:
-	fprintf( stderr, "New connection with %s:%d\n",	remoteAddress, remotePort );
-	
-	fprintf( stderr, "local FINS network: %d\n",	localFinsNet );
-	fprintf( stderr, "local FINS node: %d\n", 	localFinsNode );
-	fprintf( stderr, "local FINS unit: %d\n", 	localFinsUnit );
-	
-	fprintf( stderr, "remote IP address: %s\n", 	remoteAddress );
-	fprintf( stderr, "remote IP port: %d\n", 	remotePort );
-	fprintf( stderr, "remote FINS network: %d\n", 	remoteFinsNet );
-	fprintf( stderr, "remote FINS node: %d\n", 	remoteFinsNode );
-	fprintf( stderr, "remote FINS unit: %d\n", 	remoteFinsUnit );
-
-
-	// error variables
-	int errNum = 0;
-	int err_max = 10;
-	char errNumMsg[64];
-
-
-	/* Connect to PLC */
-	
-	struct fins_sys_tp *thisConnection = finslib_tcp_connect(
-		nullConnection,		// null pointer to context structure
-		remoteAddress,		// IP address of remote PLC
-		remotePort,		// TCP port on remote PLC
-		localFinsNet,		// local FINS network number
-		localFinsNode,		// local FINS node number
-		localFinsUnit,		// local FINS unit number
-		remoteFinsNet,		// remote FINS network number
-		remoteFinsNode,		// remote FINS node number
-		remoteFinsUnit,		// remote FINS unit number
-		&errNum,		// error code, if an error occured
-		err_max			// maximum error code
-	);
-	if (errNum == 0) {
-		fprintf( stderr,"Connected established with %s:%d\n", remoteAddress, remotePort );
-	} else {
-		finslib_errmsg(errNum, errNumMsg, 64);
-		fprintf( stderr,"Error while connecting to %s:%d [%u] [%s]\n", remoteAddress, remotePort, errNum, errNumMsg );
-		finslib_disconnect(thisConnection);
-		return NULL;
-	}
-
-	// Print specs
-
-	struct fins_cpudata_tp plcSpec;
-	int plcSpecRet = finslib_cpu_unit_data_read( thisConnection, &plcSpec );
-	if (plcSpecRet == 0) {
-		fprintf( stderr, "Model: %s\n", plcSpec.model );
-	} else {
-		finslib_errmsg( plcSpecRet, errNumMsg, 64 );
-		fprintf( stderr,
-			"Error reading PLC specs: %s, error_count: %u, sockfd: %u\n",
-			errNumMsg,
-			thisConnection->error_count,
-			thisConnection->sockfd
-		);
-		finslib_disconnect(thisConnection);
-		return NULL;
-	}
-
-
-	// Print status
-
-	struct fins_cpustatus_tp plcStat;
-	int plcStatRet = finslib_cpu_unit_status_read(thisConnection, &plcStat);
-	if (plcStatRet == 0) {
-		fprintf( stderr, "Running: %s\n", plcStat.running ? "true" : "false" );
-		fprintf( stderr, "Run Mode: %u\n", plcStat.run_mode );
-	} else {
-		finslib_errmsg(plcStatRet, errNumMsg, 64);
-		fprintf( stderr,"Error reading CPU status: %s\n", errNumMsg);
-		fprintf( stderr, "Error Code: %u\n", plcStat.error_code );
-		fprintf( stderr, "Error Message: %s\n", plcStat.error_message );
-		return NULL;
-	}
-
-	fprintf( stderr, "\n" );
-	
-	return thisConnection;
-
-}
 
 
 int main(int argc, char* argv[]) {
