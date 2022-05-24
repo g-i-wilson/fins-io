@@ -8,16 +8,16 @@ public class FINSMonitor extends FINSRead {
 	private String 			dbNetPath;
 	private String			remoteNetAddress;
 	private int			remoteNetPort;
-	private String			remoteFinsAddress;
+	private FINSAddress		remoteFinsAddress;
 	private boolean			connected = false;
 	
 	public FINSMonitor (
 		
-		String		localFinsAddress, // <net>,<node>,<unit>
+		FINSAddress	localFinsAddress, // <net>,<node>,<unit>
 		
 		String		remoteNetAddress,
 		int		remoteNetPort,
-		String		remoteFinsAddress, // <net>,<node>,<unit>
+		FINSAddress	remoteFinsAddress, // <net>,<node>,<unit>
 		
 		String[]	plcMemoryAddresses,
 		Map<String,String> plcMemory,
@@ -52,7 +52,13 @@ public class FINSMonitor extends FINSRead {
 	}
 	
 	protected void changeEvent ( Map<String,String> changes ) throws Exception {
-		String changesStr = "NetworkAddress="+remoteNetAddress+"&NetworkPort="+remoteNetPort+"&FINSAddress="+remoteFinsAddress;
+		String changesStr = 
+			"NetworkAddress="+remoteNetAddress+
+			"&NetworkPort="+remoteNetPort+
+			"&FINSNetwork="+remoteFinsAddress.network()+
+			"&FINSNode="+remoteFinsAddress.node()+
+			"&FINSUnit="+remoteFinsAddress.unit()
+		;
 		for (String key : changes.keySet()) {
 			changesStr += "&"+key+"="+changes.get(key);
 		}
@@ -82,11 +88,11 @@ public class FINSMonitor extends FINSRead {
 		);
 		Thread.sleep(3);
 		FINSMonitor fm = new FINSMonitor(
-			"1,10,0",
+			new FINSAddress( "1,10,0" ),
 			
 			"10.10.0.2",
 			9600,
-			"1,2,0",
+			new FINSAddress( "1,2,0" ),
 			
 			new String[]{ "DM500", "DM503", "DM507" },
 			new HashMap<>(),

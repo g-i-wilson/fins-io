@@ -10,7 +10,7 @@ public class FINSMonitorGroup {
 
 
 	public FINSMonitorGroup (
-		String localFinsAddress,
+		FINSAddress localFinsAddress,
 		
 		String dbAddress,
 		int dbPort,
@@ -34,7 +34,7 @@ public class FINSMonitorGroup {
 					
 		for (int i=3; i<machines.size(); i++) {
 		
-			Map memoryMap = new HashMap<String,String>();
+			Map<String,String> memoryMap = new HashMap<>();
 			memoryMaps.put( machines.index(2,"plc.NetworkAddress",i), memoryMap );
 			
 			try {
@@ -44,9 +44,11 @@ public class FINSMonitorGroup {
 					machines.index(2,"plc.NetworkAddress",i),
 					Integer.parseInt(machines.index(2,"plc.NetworkPort",i)),
 					
-					machines.index(2,"plc.FINSNetwork",i)+","+
-					machines.index(2,"plc.FINSNode",i)+","+
-					machines.index(2,"plc.FINSUnit",i),
+					new FINSAddress(
+						machines.index(2,"plc.FINSNetwork",i)+","+
+						machines.index(2,"plc.FINSNode",i)+","+
+						machines.index(2,"plc.FINSUnit",i)
+					),
 					
 					new String[]{
 						machines.index(2,"machine-data.OnAddress",i),
@@ -81,7 +83,7 @@ public class FINSMonitorGroup {
 	
 	public static void main ( String[] args ) throws Exception {
 		FINSMonitorGroup fmg = new FINSMonitorGroup(
-			args[0], // local FINS
+			new FINSAddress( args[0] ), // local FINS
 			
 			args[1], // database network address
 			Integer.parseInt(args[2]), // database network port

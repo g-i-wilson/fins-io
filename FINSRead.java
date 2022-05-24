@@ -17,11 +17,11 @@ public class FINSRead extends SystemCommand {
 	}	
 
 	public FINSRead (
-		String localFinsAddress, // <net>,<node>,<unit>
+		FINSAddress localFinsAddress, // <net>,<node>,<unit>
 		
 		String remoteNetAddress,
 		int remoteNetPort,
-		String remoteFinsAddress, // <net>,<node>,<unit>
+		FINSAddress remoteFinsAddress, // <net>,<node>,<unit>
 		
 		String[] addresses,
 		Map<String,String> memoryMap,
@@ -94,10 +94,10 @@ public class FINSRead extends SystemCommand {
 		}
 		
 		FINSRead fr = new FINSRead(
-			args[0],
+			new FINSAddress( args[0] ),
 			args[1],
 			Integer.parseInt(args[2]),
-			args[3],
+			new FINSAddress( args[3] ),
 			addresses,
 			testMap,
 			2000,
