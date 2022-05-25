@@ -4,7 +4,7 @@ import creek.*;
 
 public class FINSMonitorGroup {
 	
-	private CSV machines;
+	private CSVLookup machines;
 	private List<Timer> timers;
 	private Map<String,Map<String,String>> memoryMaps;
 
@@ -21,7 +21,7 @@ public class FINSMonitorGroup {
 	) throws Exception
 	{
 
-		machines = new CSV(
+		machines = new CSVLookup(
 			(new OutboundTCP( dbAddress, dbPort, "GET /"+machinesPath+" HTTP/1.1\r\n\r\n" ))
 			.receive()
 			.text()
@@ -32,28 +32,28 @@ public class FINSMonitorGroup {
 		timers = new ArrayList<>();
 		memoryMaps = new HashMap<>();
 					
-		for (int i=3; i<machines.size(); i++) {
+		for (int i=3; i<machines.length(); i++) {
 		
 			Map<String,String> memoryMap = new HashMap<>();
-			memoryMaps.put( machines.index(2,"plc.NetworkAddress",i), memoryMap );
+			memoryMaps.put( machines.rowLookup(2,i,"plc.NetworkAddress"), memoryMap );
 			
 			try {
 				FINSMonitor fm = new FINSMonitor(
 					localFinsAddress,
 					
-					machines.index(2,"plc.NetworkAddress",i),
-					Integer.parseInt(machines.index(2,"plc.NetworkPort",i)),
+					machines.rowLookup(2,i,"plc.NetworkAddress"),
+					Integer.parseInt(machines.rowLookup(2,i,"plc.NetworkPort")),
 					
 					new FINSAddress(
-						machines.index(2,"plc.FINSNetwork",i)+","+
-						machines.index(2,"plc.FINSNode",i)+","+
-						machines.index(2,"plc.FINSUnit",i)
+						machines.rowLookup(2,i,"plc.FINSNetwork")+","+
+						machines.rowLookup(2,i,"plc.FINSNode")+","+
+						machines.rowLookup(2,i,"plc.FINSUnit")
 					),
 					
 					new String[]{
-						machines.index(2,"machine-data.OnAddress",i),
-						machines.index(2,"machine-data.CycleAddress",i),
-						machines.index(2,"machine-data.AlarmAddress",i)
+						machines.rowLookup(2,i,"machine-data.OnAddress"),
+						machines.rowLookup(2,i,"machine-data.CycleAddress"),
+						machines.rowLookup(2,i,"machine-data.AlarmAddress")
 					},
 					memoryMap,
 					
